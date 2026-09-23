@@ -1,10 +1,18 @@
-import { Activity, Gauge, HardHat, ShieldCheck, Wrench } from "lucide-react";
+import { Activity, Gauge, HardHat, ShieldCheck, Sunrise, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NBACard } from "../components/NBACard";
 import { StatCard } from "../components/StatCard";
 import { TaskCard } from "../components/TaskCard";
 import { api } from "../lib/api";
 import type { HealthState, Machine, Operator, Recommendation, Task } from "../lib/types";
+
+interface ShiftGreeting {
+  operator_id: string;
+  machine_id: string | null;
+  machine_model: string | null;
+  previous_shift: { idle_pct: number | null; safety_events: number };
+  todays_focus: string;
+}
 
 export function Dashboard() {
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -13,6 +21,7 @@ export function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [health, setHealth] = useState<HealthState | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [greeting, setGreeting] = useState<ShiftGreeting | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,6 +59,11 @@ export function Dashboard() {
         setOperator(operatorData);
         setTasks(taskData);
         setError(null);
+
+        api
+          .getShiftGreeting(operatorId)
+          .then(setGreeting)
+          .catch(() => setGreeting(null));
       } catch (e) {
         if (!cancelled) setError(String(e));
       }
@@ -88,6 +102,26 @@ export function Dashboard() {
       {error && (
         <div className="rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
           Failed to load dashboard data: {error}. Is the backend running on port 8000?
+        </div>
+      )}
+
+      {greeting && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex items-start gap-3">
+          <Sunrise size={20} className="text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-sm text-slate-300 space-y-1">
+            <p className="font-medium text-slate-100">
+              Good morning, {greeting.operator_id}
+              {greeting.machine_model ? ` · ${greeting.machine_model}` : ""}
+            </p>
+            <p className="text-slate-400">
+              Previous shift: idle {greeting.previous_shift.idle_pct ?? "--"}% · safety events{" "}
+              {greeting.previous_shift.safety_events}
+            </p>
+            <p className="text-slate-400">
+              <span className="text-slate-500">Today's focus: </span>
+              {greeting.todays_focus}
+            </p>
+          </div>
         </div>
       )}
 

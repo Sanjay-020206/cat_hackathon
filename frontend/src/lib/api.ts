@@ -76,6 +76,14 @@ export const api = {
   getIncidents: () => getJson<Incident[]>("/incidents"),
   createIncident: (incident: Incident) => postJson<Incident>("/incidents", incident),
   getRecommendation: (machineId: string) => getJson<Recommendation>(`/recommendations/${machineId}`),
+  getShiftGreeting: (operatorId: string) =>
+    getJson<{
+      operator_id: string;
+      machine_id: string | null;
+      machine_model: string | null;
+      previous_shift: { idle_pct: number | null; safety_events: number };
+      todays_focus: string;
+    }>(`/shift/greeting/${operatorId}`),
   startSimulation: (mode: "scripted" | "random", interval_seconds = 1.0) =>
     postJson<SimulationStatus>("/simulation/start", { mode, interval_seconds }),
   stopSimulation: () => postJson<SimulationStatus>("/simulation/stop"),

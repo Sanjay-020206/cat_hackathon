@@ -13,6 +13,7 @@ from app.routers import (
     predictions,
     recommendations,
     safety,
+    shift,
     simulation,
     tasks,
     telemetry,
@@ -52,6 +53,7 @@ app.include_router(predictions.router)
 app.include_router(training.router)
 app.include_router(incidents.router)
 app.include_router(recommendations.router)
+app.include_router(shift.router)
 app.include_router(simulation.router)
 app.include_router(telemetry_ws.router)
 

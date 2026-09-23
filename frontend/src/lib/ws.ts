@@ -12,6 +12,11 @@ export function useTelemetryStream() {
   const [latest, setLatest] = useState<TelemetryReading | null>(null);
   const [history, setHistory] = useState<TelemetryReading[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
+  // Wall-clock time this client actually received the last reading -- used for staleness
+  // detection instead of the payload's `timestamp` field, which (in scripted demo mode)
+  // holds a fixed simulated time once the scenario reaches its final stage and stops
+  // advancing, so it does not reflect whether readings are still actually arriving.
+  const [lastReceivedAt, setLastReceivedAt] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<number | null>(null);
 
@@ -31,6 +36,7 @@ export function useTelemetryStream() {
           const data = JSON.parse(event.data);
           if (data.type === "status") return; // heartbeat, not a telemetry reading
           setLatest(data as TelemetryReading);
+          setLastReceivedAt(Date.now());
           setHistory((prev) => [...prev.slice(-59), data as TelemetryReading]);
         } catch {
           // ignore malformed frame
@@ -56,5 +62,5 @@ export function useTelemetryStream() {
     };
   }, []);
 
-  return { latest, history, connectionState };
+  return { latest, history, connectionState, lastReceivedAt };
 }

@@ -97,8 +97,11 @@ def test_training_recommendation_endpoint_and_completion_loop():
         history_resp = client.get(f"/training/history/{operator_id}")
         assert history_resp.status_code == 200
         history = history_resp.json()
-        assert len(history) == 1
-        assert history[0]["training_id"] == "TRN001"
+        # Not asserting exact length: the in-memory completion store is shared across the
+        # test session, so other tests may have already logged completions for this operator.
+        assert len(history) >= 1
+        assert history[-1]["training_id"] == "TRN001"
+        assert history[-1]["before"] == 51.4
 
 
 def test_training_recommendation_unknown_operator_404():

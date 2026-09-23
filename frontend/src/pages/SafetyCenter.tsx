@@ -1,21 +1,35 @@
-import { ShieldAlert, ShieldCheck, TriangleAlert } from "lucide-react";
+import { FilePlus, ShieldAlert, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatCard } from "../components/StatCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../lib/api";
-import type { Machine, Recommendation, SafetyEvent } from "../lib/types";
+import type { Incident, Machine, Recommendation, SafetyEvent } from "../lib/types";
+
+const EMPTY_FORM = {
+  event_type: "Proximity Alert",
+  severity: "Medium",
+  zone: "Zone A",
+  trigger: "",
+  action_taken: "",
+  outcome: "",
+};
 
 export function SafetyCenter() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedMachineId, setSelectedMachineId] = useState("");
   const [events, setEvents] = useState<SafetyEvent[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     api.getMachines().then((data) => {
       setMachines(data);
       if (data.length > 0) setSelectedMachineId(data[0].machine_id);
     });
+    api.getIncidents().then(setIncidents).catch(() => setIncidents([]));
   }, []);
 
   useEffect(() => {
@@ -26,6 +40,31 @@ export function SafetyCenter() {
 
   const highSeverityCount = events.filter((e) => e.severity === "High").length;
 
+  const handleLogIncident = async () => {
+    if (!selectedMachineId) return;
+    setSubmitting(true);
+    try {
+      const incident: Incident = {
+        incident_id: `INC${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        machine_id: selectedMachineId,
+        operator_id: recommendation?.operator_id ?? "UNKNOWN",
+        site_zone: form.zone,
+        event_type: form.event_type,
+        severity: form.severity,
+        trigger: form.trigger || "Manually logged by operator",
+        action_taken: form.action_taken || "Not specified",
+        outcome: form.outcome || "Pending review",
+      };
+      const created = await api.createIncident(incident);
+      setIncidents((prev) => [created, ...prev]);
+      setForm(EMPTY_FORM);
+      setShowForm(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -33,17 +72,25 @@ export function SafetyCenter() {
           <h1 className="text-xl font-semibold text-slate-100">Safety Center</h1>
           <p className="text-sm text-slate-500">Seatbelt, proximity and incident monitoring</p>
         </div>
-        <select
-          value={selectedMachineId}
-          onChange={(e) => setSelectedMachineId(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200"
-        >
-          {machines.map((m) => (
-            <option key={m.machine_id} value={m.machine_id}>
-              {m.machine_id} · {m.model}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-2">
+          <select
+            value={selectedMachineId}
+            onChange={(e) => setSelectedMachineId(e.target.value)}
+            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200"
+          >
+            {machines.map((m) => (
+              <option key={m.machine_id} value={m.machine_id}>
+                {m.machine_id} · {m.model}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowForm((s) => !s)}
+            className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700"
+          >
+            <FilePlus size={15} /> Log Incident
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -65,8 +112,106 @@ export function SafetyCenter() {
         </div>
       )}
 
+      {showForm && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+          <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide">New Incident</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <select
+              value={form.event_type}
+              onChange={(e) => setForm({ ...form, event_type: e.target.value })}
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
+            >
+              {["Proximity Alert", "Seatbelt Violation", "Overspeed", "Unsafe Maneuver", "Hard Stop"].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <select
+              value={form.severity}
+              onChange={(e) => setForm({ ...form, severity: e.target.value })}
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
+            >
+              {["Low", "Medium", "High"].map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <input
+              value={form.zone}
+              onChange={(e) => setForm({ ...form, zone: e.target.value })}
+              placeholder="Zone"
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
+            />
+            <input
+              value={form.trigger}
+              onChange={(e) => setForm({ ...form, trigger: e.target.value })}
+              placeholder="What triggered this?"
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 md:col-span-3"
+            />
+            <input
+              value={form.action_taken}
+              onChange={(e) => setForm({ ...form, action_taken: e.target.value })}
+              placeholder="Action taken"
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 md:col-span-3"
+            />
+            <input
+              value={form.outcome}
+              onChange={(e) => setForm({ ...form, outcome: e.target.value })}
+              placeholder="Outcome"
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 md:col-span-3"
+            />
+          </div>
+          <button
+            onClick={handleLogIncident}
+            disabled={submitting}
+            className="rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {submitting ? "Saving..." : "Save Incident"}
+          </button>
+        </div>
+      )}
+
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-        <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-3">Incident History</h2>
+        <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-3">Logged Incidents</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-slate-800 text-slate-500 text-xs uppercase">
+                <th className="py-2 pr-4">Time</th>
+                <th className="py-2 pr-4">Type</th>
+                <th className="py-2 pr-4">Severity</th>
+                <th className="py-2 pr-4">Zone</th>
+                <th className="py-2 pr-4">Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              {incidents.map((i) => (
+                <tr key={i.incident_id} className="border-b border-slate-800/60 text-slate-300">
+                  <td className="py-2 pr-4">{new Date(i.timestamp).toLocaleString()}</td>
+                  <td className="py-2 pr-4">{i.event_type}</td>
+                  <td className="py-2 pr-4">
+                    <StatusBadge label={i.severity} />
+                  </td>
+                  <td className="py-2 pr-4">{i.site_zone}</td>
+                  <td className="py-2 pr-4">{i.outcome}</td>
+                </tr>
+              ))}
+              {incidents.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-4 text-center text-slate-500">
+                    No incidents logged yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+        <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-3">Safety Event History</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead>

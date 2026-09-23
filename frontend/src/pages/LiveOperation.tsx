@@ -1,4 +1,4 @@
-import { Play, Radio, Square } from "lucide-react";
+import { AlertOctagon, Play, Radio, Square } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { NBACard } from "../components/NBACard";
 import { RiskTrendChart } from "../components/RiskTrendChart";
@@ -7,10 +7,22 @@ import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../lib/api";
 import { useTelemetryStream } from "../lib/ws";
 
+const STALE_THRESHOLD_SECONDS = 12;
+
 export function LiveOperation() {
-  const { latest, history, connectionState } = useTelemetryStream();
+  const { latest, history, connectionState, lastReceivedAt } = useTelemetryStream();
   const [simRunning, setSimRunning] = useState(false);
   const [riskSeries, setRiskSeries] = useState<{ t: string; risk: number }[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const secondsSinceLastReading = lastReceivedAt !== null ? Math.max(0, Math.round((now - lastReceivedAt) / 1000)) : null;
+  const telemetryDegraded =
+    simRunning && secondsSinceLastReading !== null && secondsSinceLastReading > STALE_THRESHOLD_SECONDS;
 
   useEffect(() => {
     api
@@ -74,6 +86,15 @@ export function LiveOperation() {
           </button>
         </div>
       </div>
+
+      {telemetryDegraded && (
+        <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-sm text-red-300 flex items-center gap-2">
+          <AlertOctagon size={16} />
+          <span>
+            Telemetry quality degraded — last update {secondsSinceLastReading}s ago. Prediction confidence reduced.
+          </span>
+        </div>
+      )}
 
       {latest?.note && (
         <div className="rounded-lg border border-sky-900 bg-sky-950/40 px-4 py-2 text-sm text-sky-300">
