@@ -2,6 +2,8 @@ import pandas as pd
 import pytest
 
 from app.context.context_engine import ContextEngine, ContextFusionInput
+from app.context.explain import build_explanation, format_as_text
+from app.context.nba_engine import next_best_action
 from app.simulator.scenario import DEMO_MACHINE_ID, DEMO_OPERATOR_ID, STAGES, stage_to_telemetry
 
 
@@ -138,3 +140,82 @@ def test_context_engine_reset_clears_history(scenario_readings):
     assert len(engine.get_risk_history(inp.machine_id)) == 1
     engine.reset(inp.machine_id)
     assert len(engine.get_risk_history(inp.machine_id)) == 0
+
+
+# ---- Phase 5: Next Best Action + Explainability ----
+
+
+def test_nba_continue_operation_when_low_risk(scenario_readings):
+    engine = ContextEngine()
+    inp = _fusion_input_for_stage(0, scenario_readings, safety_event_count=0)
+    context = engine.process(inp)
+    nba = next_best_action(context)
+    assert nba["action"] == "continue_operation"
+    assert nba["priority"] == "Low"
+
+
+def test_nba_reposition_at_risk_escalation_stage(scenario_readings):
+    """Spec section 41 stage 7: cycle deviation + proximity events + wet ground + machine
+    trend should trigger the 'reposition before continuing' recommendation."""
+    engine = ContextEngine()
+    safety_counts = [0, 0, 0, 0, 2, 2, 2]
+
+    context = None
+    for idx in range(7):
+        inp = _fusion_input_for_stage(idx, scenario_readings, safety_event_count=safety_counts[idx])
+        context = engine.process(inp)
+
+    assert context is not None
+    nba = next_best_action(context)
+    assert nba["action"] == "reposition_before_continuing"
+    assert nba["priority"] == "High"
+    assert 0.0 < nba["confidence"] <= 1.0
+
+
+def test_nba_seatbelt_violation_takes_priority():
+    context = {
+        "risk_level": "Elevated",
+        "risk_trend": "Increasing",
+        "risk_score": 0.5,
+        "priority_domain": "safety",
+        "contributors": [
+            {"factor": "seatbelt_violation", "value": True, "importance": 0.15},
+            {"factor": "proximity_events", "value": 2, "importance": 0.25},
+        ],
+    }
+    nba = next_best_action(context)
+    assert nba["action"] == "fasten_seatbelt_and_pause"
+    assert nba["priority"] == "High"
+
+
+def test_explanation_structure_and_mentions_reason(scenario_readings):
+    engine = ContextEngine()
+    safety_counts = [0, 0, 0, 0, 2, 2, 2]
+
+    context = None
+    for idx in range(7):
+        inp = _fusion_input_for_stage(idx, scenario_readings, safety_event_count=safety_counts[idx])
+        context = engine.process(inp)
+
+    assert context is not None
+    nba = next_best_action(context)
+    explanation = build_explanation(context, nba)
+
+    assert {"detection", "evidence", "explanation", "recommendation", "priority", "confidence"}.issubset(
+        explanation.keys()
+    )
+    assert "cycle time" in explanation["evidence"].lower() or "proximity" in explanation["evidence"].lower()
+    assert explanation["recommendation"] == nba["action_label"]
+
+
+def test_explanation_formats_as_readable_text(scenario_readings):
+    engine = ContextEngine()
+    inp = _fusion_input_for_stage(0, scenario_readings, safety_event_count=0)
+    context = engine.process(inp)
+    nba = next_best_action(context)
+    explanation = build_explanation(context, nba)
+
+    text = format_as_text(explanation)
+    assert "Recommendation:" in text
+    assert "Priority:" in text
+    assert "Confidence:" in text
