@@ -4,7 +4,7 @@ import { NBACard } from "../components/NBACard";
 import { StatCard } from "../components/StatCard";
 import { TaskCard } from "../components/TaskCard";
 import { api } from "../lib/api";
-import type { HealthState, Machine, Operator, Recommendation, Task } from "../lib/types";
+import type { HealthState, Machine, Operator, Recommendation, Task, TaskPrediction } from "../lib/types";
 
 interface ShiftGreeting {
   operator_id: string;
@@ -22,6 +22,7 @@ export function Dashboard() {
   const [health, setHealth] = useState<HealthState | null>(null);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [greeting, setGreeting] = useState<ShiftGreeting | null>(null);
+  const [prediction, setPrediction] = useState<TaskPrediction | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,6 +65,13 @@ export function Dashboard() {
           .getShiftGreeting(operatorId)
           .then(setGreeting)
           .catch(() => setGreeting(null));
+
+        if (taskData.length > 0) {
+          api
+            .getPrediction(taskData[0].task_id)
+            .then(setPrediction)
+            .catch(() => setPrediction(null));
+        }
       } catch (e) {
         if (!cancelled) setError(String(e));
       }
@@ -141,9 +149,9 @@ export function Dashboard() {
         />
         <StatCard
           label="Productivity"
-          value={currentTask ? "On pace" : "--"}
+          value={prediction ? (prediction.deadline_at_risk ? "At Risk" : "On Pace") : "--"}
           icon={Activity}
-          accent="violet"
+          accent={prediction?.deadline_at_risk ? "amber" : "violet"}
           sub={currentTask ? `${currentTask.task_type}` : undefined}
         />
         <StatCard
@@ -165,7 +173,15 @@ export function Dashboard() {
           <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide flex items-center gap-2">
             <HardHat size={16} /> Current Task
           </h2>
-          {currentTask ? <TaskCard task={currentTask} /> : <p className="text-sm text-slate-500">No active task.</p>}
+          {currentTask ? (
+            <TaskCard
+              task={currentTask}
+              aiEta={prediction?.predicted_duration}
+              status={prediction?.deadline_at_risk ? "AT RISK" : "ON TRACK"}
+            />
+          ) : (
+            <p className="text-sm text-slate-500">No active task.</p>
+          )}
 
           <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide pt-2">Today's Tasks</h2>
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">

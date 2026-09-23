@@ -7,6 +7,7 @@ import type {
   SafetyEvent,
   SimulationStatus,
   Task,
+  TaskPrediction,
   TelemetryReading,
   Training,
   TrainingCompletion,
@@ -65,6 +66,7 @@ export const api = {
     return getJson<SafetyEvent[]>(`/safety${s ? `?${s}` : ""}`);
   },
   getHealth: (machineId: string) => getJson<HealthState>(`/health/${machineId}`),
+  getPrediction: (taskId: string) => getJson<TaskPrediction>(`/predictions/${taskId}`),
   getTraining: () => getJson<Training[]>("/training"),
   getTrainingRecommendation: (operatorId: string) =>
     getJson<{ operator_id: string; recommendation: TrainingRecommendation | null }>(

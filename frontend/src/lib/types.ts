@@ -131,6 +131,16 @@ export interface HealthState {
   as_of: string;
 }
 
+export interface TaskPrediction {
+  task_id: string;
+  original_estimated_time: number;
+  predicted_duration: number;
+  confidence: number | null;
+  explanation: { factor: string; raw_value: unknown; impact_minutes: number }[];
+  deadline_at_risk?: boolean;
+  note?: string;
+}
+
 export interface TrainingRecommendation {
   skill_gap: string;
   training_id: string;

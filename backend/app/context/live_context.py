@@ -13,6 +13,8 @@ import pandas as pd
 from app.context.context_engine import ContextEngine, ContextFusionInput, build_context
 from app.context.explain import build_explanation
 from app.context.nba_engine import next_best_action
+from app.ml import anomaly
+from app.ml.registry import get_anomaly_model
 
 DEFAULT_BASELINE_CYCLE_TIME = 44.0
 DEFAULT_BASELINE_IDLE_TIME = 8.0
@@ -63,6 +65,7 @@ class LiveContextProcessor:
         context = self.engine.process(inp)
         nba = next_best_action(context)
         explanation = build_explanation(context, nba)
+        ml_anomaly = self._score_ml_anomaly(reading)
 
         return {
             "risk_level": context["risk_level"],
@@ -71,7 +74,21 @@ class LiveContextProcessor:
             "contributors": context["contributors"],
             "next_best_action": nba,
             "explanation": explanation,
+            "ml_anomaly": ml_anomaly,
         }
+
+    @staticmethod
+    def _score_ml_anomaly(reading: dict) -> dict | None:
+        """Runs Model A (Isolation Forest) on the live reading -- an independent,
+        data-driven anomaly signal alongside the rule-based risk engine. Never raises:
+        an ML failure here must degrade to "unavailable", not break the live stream."""
+        try:
+            if not all(f in reading for f in anomaly.FEATURES):
+                return None
+            model = get_anomaly_model()
+            return anomaly.score_single(model, reading)
+        except Exception:
+            return None
 
     def reset(self, machine_id: str | None = None) -> None:
         if machine_id is None:

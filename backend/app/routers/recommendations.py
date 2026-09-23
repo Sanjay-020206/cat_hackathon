@@ -17,6 +17,8 @@ from app.context.explain import build_explanation
 from app.context.llm_explain import explain_with_fallback
 from app.context.nba_engine import next_best_action
 from app.db import get_db
+from app.ml import anomaly
+from app.ml.registry import get_anomaly_model
 from app.models import Machine, Operator, SafetyEvent, Telemetry
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
@@ -88,6 +90,23 @@ def get_recommendation(
     if narrative:
         explanation = explain_with_fallback(explanation)
 
+    ml_anomaly = None
+    try:
+        model = get_anomaly_model()
+        ml_anomaly = anomaly.score_single(
+            model,
+            {
+                "cycle_time": latest.cycle_time,
+                "idle_time": latest.idle_time,
+                "fuel_rate": latest.fuel_rate,
+                "engine_load": latest.engine_load,
+                "hydraulic_pressure": latest.hydraulic_pressure,
+                "engine_temp": latest.engine_temp,
+            },
+        )
+    except Exception:
+        pass
+
     return {
         "machine_id": machine_id,
         "operator_id": latest.operator_id,
@@ -97,4 +116,5 @@ def get_recommendation(
         "contributors": context["contributors"],
         "next_best_action": nba,
         "explanation": explanation,
+        "ml_anomaly": ml_anomaly,
     }
