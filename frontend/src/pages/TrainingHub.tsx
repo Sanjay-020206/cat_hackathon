@@ -1,32 +1,125 @@
-import { BookOpen, CheckCircle2, Clock } from "lucide-react";
+import { BookOpen, CheckCircle2, Clock, Sparkles, TrendingDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import type { Training } from "../lib/types";
+import type { Operator, Training, TrainingCompletion, TrainingRecommendation } from "../lib/types";
 
 export function TrainingHub() {
   const [modules, setModules] = useState<Training[]>([]);
-  const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [selectedOperatorId, setSelectedOperatorId] = useState("");
+  const [recommendation, setRecommendation] = useState<TrainingRecommendation | null>(null);
+  const [history, setHistory] = useState<TrainingCompletion[]>([]);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     api.getTraining().then(setModules);
+    api.getOperators().then((data) => {
+      setOperators(data);
+      if (data.length > 0) setSelectedOperatorId(data[0].operator_id);
+    });
   }, []);
 
-  const toggleComplete = (id: string) => {
-    setCompleted((prev) => ({ ...prev, [id]: !prev[id] }));
+  useEffect(() => {
+    if (!selectedOperatorId) return;
+    api
+      .getTrainingRecommendation(selectedOperatorId)
+      .then((r) => setRecommendation(r.recommendation))
+      .catch(() => setRecommendation(null));
+    api
+      .getTrainingHistory(selectedOperatorId)
+      .then(setHistory)
+      .catch(() => setHistory([]));
+  }, [selectedOperatorId]);
+
+  const handleComplete = async () => {
+    if (!recommendation) return;
+    setCompleting(true);
+    try {
+      const record = await api.completeTraining({
+        operator_id: selectedOperatorId,
+        training_id: recommendation.training_id,
+        skill_gap: recommendation.skill_gap,
+        before_cycle_time: recommendation.current_cycle_time,
+      });
+      setHistory((prev) => [...prev, record]);
+    } finally {
+      setCompleting(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-100">Training Hub</h1>
-        <p className="text-sm text-slate-500">
-          Personalized micro-training, recommended when a recurring behavior pattern is detected.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-100">Training Hub</h1>
+          <p className="text-sm text-slate-500">
+            Personalized micro-training, recommended when a recurring behavior pattern is detected.
+          </p>
+        </div>
+        <select
+          value={selectedOperatorId}
+          onChange={(e) => setSelectedOperatorId(e.target.value)}
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200"
+        >
+          {operators.map((o) => (
+            <option key={o.operator_id} value={o.operator_id}>
+              {o.operator_id} · {o.skill_level}
+            </option>
+          ))}
+        </select>
       </div>
 
+      <div className="rounded-xl border border-sky-900 bg-sky-950/30 p-5 space-y-3">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-sky-400">
+          <Sparkles size={16} /> Recommended for you
+        </div>
+        {recommendation ? (
+          <>
+            <p className="text-lg font-medium text-slate-100">{recommendation.title}</p>
+            <p className="text-sm text-slate-400 flex items-center gap-1.5">
+              <Clock size={14} /> {recommendation.duration_minutes} minutes
+            </p>
+            <p className="text-sm text-slate-300">
+              <span className="text-slate-500">Reason: </span>
+              {recommendation.reason}
+            </p>
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            >
+              <CheckCircle2 size={15} />
+              {completing ? "Recording..." : "Complete Training"}
+            </button>
+          </>
+        ) : (
+          <p className="text-sm text-slate-400">
+            No specific training required right now; this operator's behavior is within their baseline.
+          </p>
+        )}
+      </div>
+
+      {history.length > 0 && (
+        <div className="rounded-xl border border-emerald-900 bg-emerald-950/20 p-4 space-y-2">
+          <h2 className="text-sm font-medium text-emerald-400 uppercase tracking-wide flex items-center gap-1.5">
+            <TrendingDown size={15} /> Observed Impact
+          </h2>
+          {history.map((h, i) => (
+            <div key={i} className="flex items-center justify-between text-sm text-slate-300">
+              <span>{h.training_id}</span>
+              <span>
+                {h.before}s → {h.after}s{" "}
+                <span className="text-emerald-400">({h.improvement_pct}% improvement)</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide pt-2">Full Catalog</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {modules.map((m) => (
-          <div key={m.training_id} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+          <div key={m.training_id} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
                 <BookOpen size={17} className="text-sky-400" />
@@ -39,17 +132,6 @@ export function TrainingHub() {
             <p className="text-sm text-slate-400 flex items-center gap-1.5">
               <Clock size={14} /> {m.duration} minutes · skill: {m.skill.replace(/_/g, " ")}
             </p>
-            <button
-              onClick={() => toggleComplete(m.training_id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                completed[m.training_id]
-                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                  : "bg-slate-800 text-slate-200 hover:bg-slate-700"
-              }`}
-            >
-              <CheckCircle2 size={15} />
-              {completed[m.training_id] ? "Completed" : "Mark as Completed"}
-            </button>
           </div>
         ))}
         {modules.length === 0 && <p className="text-sm text-slate-500">Loading training catalog...</p>}

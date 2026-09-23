@@ -131,6 +131,25 @@ export interface HealthState {
   as_of: string;
 }
 
+export interface TrainingRecommendation {
+  skill_gap: string;
+  training_id: string;
+  title: string;
+  duration_minutes: number;
+  reason: string;
+  current_cycle_time: number;
+}
+
+export interface TrainingCompletion {
+  operator_id: string;
+  training_id: string;
+  skill_gap: string;
+  completed_at: string;
+  before: number;
+  after: number;
+  improvement_pct: number;
+}
+
 export interface SimulationStatus {
   running: boolean;
   mode: string | null;

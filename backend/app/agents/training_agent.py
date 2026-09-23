@@ -68,6 +68,29 @@ def recommend(
     }
 
 
+SKILL_GAP_IMPROVEMENT_PCT = {
+    "cycle_efficiency": 0.109,  # matches spec section 19 example: 51.4s -> 45.8s (~10.9%)
+    "idle_reduction": 0.30,
+    "safe_zone_awareness": 0.0,  # behavioral compliance, not a cycle-time metric
+    "wet_terrain_handling": 0.12,
+    "fuel_efficiency": 0.08,
+    "proximity_awareness": 0.0,
+}
+
+
+def simulate_intervention(before_value: float, skill_gap: str) -> dict:
+    """Simulates the effect of completing training on the operator's relevant metric
+    (spec section 19: 'Behavior -> Training -> Outcome'). Deterministic, not random, so the
+    demo is reproducible."""
+    improvement_pct = SKILL_GAP_IMPROVEMENT_PCT.get(skill_gap, 0.1)
+    after_value = before_value * (1 - improvement_pct)
+    return {
+        "before": round(before_value, 1),
+        "after": round(after_value, 1),
+        "improvement_pct": round(improvement_pct * 100, 1),
+    }
+
+
 def _reason_for_gap(gap: str, cycle_dev: float, idle_dev: float, proximity_events: int) -> str:
     if gap == "proximity_awareness":
         return f"{proximity_events} proximity events detected this shift."

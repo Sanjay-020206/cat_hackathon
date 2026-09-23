@@ -9,6 +9,8 @@ import type {
   Task,
   TelemetryReading,
   Training,
+  TrainingCompletion,
+  TrainingRecommendation,
 } from "./types";
 
 const BASE_URL = "/api";
@@ -64,6 +66,13 @@ export const api = {
   },
   getHealth: (machineId: string) => getJson<HealthState>(`/health/${machineId}`),
   getTraining: () => getJson<Training[]>("/training"),
+  getTrainingRecommendation: (operatorId: string) =>
+    getJson<{ operator_id: string; recommendation: TrainingRecommendation | null }>(
+      `/training/recommendation/${operatorId}`,
+    ),
+  completeTraining: (payload: { operator_id: string; training_id: string; skill_gap: string; before_cycle_time: number }) =>
+    postJson<TrainingCompletion>("/training/complete", payload),
+  getTrainingHistory: (operatorId: string) => getJson<TrainingCompletion[]>(`/training/history/${operatorId}`),
   getIncidents: () => getJson<Incident[]>("/incidents"),
   createIncident: (incident: Incident) => postJson<Incident>("/incidents", incident),
   getRecommendation: (machineId: string) => getJson<Recommendation>(`/recommendations/${machineId}`),
