@@ -26,3 +26,6 @@ backend/data/*.sqlite3
 Thumbs.db
 .vscode/
 .idea/
+
+# Frontend build output already covered above; explicit for clarity
+frontend/dist/
