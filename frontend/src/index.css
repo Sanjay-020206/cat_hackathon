@@ -1,7 +1,15 @@
 @import "tailwindcss";
 
+/* Default theme is dark (the app's original design). Adding class="light" to <html>
+   switches to light mode via the light: variant used throughout the app. */
+@custom-variant light (&:where(.light, .light *));
+
 :root {
   color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
 }
 
 body {
@@ -9,6 +17,12 @@ body {
   background-color: #0b0f14;
   color: #e6e9ef;
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
 }
 
 #root {
@@ -26,6 +40,9 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #2a3341;
   border-radius: 8px;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
 }
 ::-webkit-scrollbar-track {
   background: transparent;

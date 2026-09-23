@@ -18,14 +18,14 @@ const ACCENTS: Record<string, string> = {
 
 export function StatCard({ label, value, icon: Icon, accent = "sky", sub }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex items-start gap-3">
+    <div className="rounded-xl border border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-white p-4 flex items-start gap-3">
       <div className={`rounded-lg p-2 ${ACCENTS[accent]}`}>
         <Icon size={20} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-        <p className="text-xl font-semibold text-slate-100 truncate">{value}</p>
-        {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+        <p className="text-xs uppercase tracking-wide text-slate-400 light:text-slate-500">{label}</p>
+        <p className="text-xl font-semibold text-slate-100 light:text-slate-900 truncate">{value}</p>
+        {sub && <p className="text-xs text-slate-500 light:text-slate-400 mt-0.5">{sub}</p>}
       </div>
     </div>
   );

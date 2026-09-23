@@ -63,8 +63,8 @@ export function LiveOperation() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Live Operation</h1>
-          <p className="text-sm text-slate-500 flex items-center gap-2">
+          <h1 className="text-xl font-semibold text-slate-100 light:text-slate-900">Live Operation</h1>
+          <p className="text-sm text-slate-500 light:text-slate-500 flex items-center gap-2">
             <Radio size={14} className={connectionColor} /> {connectionState}
             {latest && <span> · stage: {stageLabel}</span>}
           </p>
@@ -80,7 +80,7 @@ export function LiveOperation() {
           <button
             onClick={handleStop}
             disabled={!simRunning}
-            className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg bg-slate-800 light:bg-slate-200 px-3 py-2 text-sm font-medium text-slate-200 light:text-slate-700 disabled:opacity-40"
           >
             <Square size={15} /> Stop
           </button>
@@ -88,7 +88,7 @@ export function LiveOperation() {
       </div>
 
       {telemetryDegraded && (
-        <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-sm text-red-300 flex items-center gap-2">
+        <div className="rounded-lg border border-red-900 light:border-red-300 bg-red-950/40 light:bg-red-50 px-4 py-2 text-sm text-red-300 light:text-red-700 flex items-center gap-2">
           <AlertOctagon size={16} />
           <span>
             Telemetry quality degraded — last update {secondsSinceLastReading}s ago. Prediction confidence reduced.
@@ -97,7 +97,7 @@ export function LiveOperation() {
       )}
 
       {latest?.note && (
-        <div className="rounded-lg border border-sky-900 bg-sky-950/40 px-4 py-2 text-sm text-sky-300">
+        <div className="rounded-lg border border-sky-900 light:border-sky-300 bg-sky-950/40 light:bg-sky-50 px-4 py-2 text-sm text-sky-300 light:text-sky-700">
           {latest.note}
         </div>
       )}
@@ -115,9 +115,11 @@ export function LiveOperation() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+        <div className="rounded-xl border border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-white p-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide">Risk Trend</h2>
+            <h2 className="text-sm font-medium text-slate-300 light:text-slate-600 uppercase tracking-wide">
+              Risk Trend
+            </h2>
             {recommendation && (
               <div className="flex gap-2">
                 <StatusBadge label={recommendation.risk_level} />
@@ -128,56 +130,62 @@ export function LiveOperation() {
           <RiskTrendChart data={riskSeries} />
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
-          <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-2">Machine Health</h2>
+        <div className="rounded-xl border border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-white p-4 space-y-2">
+          <h2 className="text-sm font-medium text-slate-300 light:text-slate-600 uppercase tracking-wide mb-2">
+            Machine Health
+          </h2>
           {latest ? (
-            <ul className="text-sm text-slate-300 space-y-1.5">
+            <ul className="text-sm text-slate-300 light:text-slate-700 space-y-1.5">
               <li className="flex justify-between">
-                <span className="text-slate-500">Engine RPM</span>
+                <span className="text-slate-500 light:text-slate-400">Engine RPM</span>
                 <span>{latest.engine_rpm}</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-slate-500">Engine Temp</span>
+                <span className="text-slate-500 light:text-slate-400">Engine Temp</span>
                 <span>{latest.engine_temp}°C</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-slate-500">Engine Load</span>
+                <span className="text-slate-500 light:text-slate-400">Engine Load</span>
                 <span>{latest.engine_load}%</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-slate-500">Hydraulic Pressure</span>
+                <span className="text-slate-500 light:text-slate-400">Hydraulic Pressure</span>
                 <span>{latest.hydraulic_pressure} bar</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-slate-500">Seatbelt</span>
+                <span className="text-slate-500 light:text-slate-400">Seatbelt</span>
                 <span>{latest.seatbelt_status}</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-slate-500">Proximity Events</span>
+                <span className="text-slate-500 light:text-slate-400">Proximity Events</span>
                 <span>{latest.proximity_events ?? 0}</span>
               </li>
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">Start the demo simulation to see live telemetry.</p>
+            <p className="text-sm text-slate-500 light:text-slate-400">
+              Start the demo simulation to see live telemetry.
+            </p>
           )}
         </div>
       </div>
 
       {recommendation && (
         <div>
-          <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-2">
+          <h2 className="text-sm font-medium text-slate-300 light:text-slate-600 uppercase tracking-wide mb-2">
             Live Next Best Action
           </h2>
           <NBACard recommendation={recommendation} />
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-        <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-2">Recent Readings</h2>
+      <div className="rounded-xl border border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-white p-4">
+        <h2 className="text-sm font-medium text-slate-300 light:text-slate-600 uppercase tracking-wide mb-2">
+          Recent Readings
+        </h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left text-slate-400">
+          <table className="w-full text-xs text-left text-slate-400 light:text-slate-500">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-500">
+              <tr className="border-b border-slate-800 light:border-slate-200 text-slate-500 light:text-slate-400">
                 <th className="py-1.5 pr-4">Time</th>
                 <th className="py-1.5 pr-4">Stage</th>
                 <th className="py-1.5 pr-4">Cycle</th>
@@ -191,7 +199,7 @@ export function LiveOperation() {
                 .reverse()
                 .slice(0, 10)
                 .map((r, i) => (
-                  <tr key={i} className="border-b border-slate-800/60">
+                  <tr key={i} className="border-b border-slate-800/60 light:border-slate-200/80">
                     <td className="py-1.5 pr-4">{new Date(r.timestamp).toLocaleTimeString()}</td>
                     <td className="py-1.5 pr-4">{r.stage_label}</td>
                     <td className="py-1.5 pr-4">{r.cycle_time}s</td>

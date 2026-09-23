@@ -89,15 +89,15 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Operator Dashboard</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-xl font-semibold text-slate-100 light:text-slate-900">Operator Dashboard</h1>
+          <p className="text-sm text-slate-500 light:text-slate-500">
             {operator ? `${operator.operator_id} · ${operator.skill_level}` : "Loading operator..."}
           </p>
         </div>
         <select
           value={selectedMachineId}
           onChange={(e) => setSelectedMachineId(e.target.value)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200"
+          className="rounded-lg border border-slate-700 light:border-slate-300 bg-slate-900 light:bg-white px-3 py-2 text-sm text-slate-200 light:text-slate-800"
         >
           {machines.map((m) => (
             <option key={m.machine_id} value={m.machine_id}>
@@ -108,25 +108,25 @@ export function Dashboard() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-lg border border-red-800 light:border-red-300 bg-red-950/40 light:bg-red-50 px-4 py-3 text-sm text-red-300 light:text-red-700">
           Failed to load dashboard data: {error}. Is the backend running on port 8000?
         </div>
       )}
 
       {greeting && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex items-start gap-3">
+        <div className="rounded-xl border border-slate-800 light:border-slate-200 bg-slate-900/60 light:bg-white p-4 flex items-start gap-3">
           <Sunrise size={20} className="text-amber-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-slate-300 space-y-1">
-            <p className="font-medium text-slate-100">
+          <div className="text-sm text-slate-300 light:text-slate-600 space-y-1">
+            <p className="font-medium text-slate-100 light:text-slate-900">
               Good morning, {greeting.operator_id}
               {greeting.machine_model ? ` · ${greeting.machine_model}` : ""}
             </p>
-            <p className="text-slate-400">
+            <p className="text-slate-400 light:text-slate-500">
               Previous shift: idle {greeting.previous_shift.idle_pct ?? "--"}% · safety events{" "}
               {greeting.previous_shift.safety_events}
             </p>
-            <p className="text-slate-400">
-              <span className="text-slate-500">Today's focus: </span>
+            <p className="text-slate-400 light:text-slate-500">
+              <span className="text-slate-500 light:text-slate-400">Today's focus: </span>
               {greeting.todays_focus}
             </p>
           </div>
@@ -170,7 +170,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide flex items-center gap-2">
+          <h2 className="text-sm font-medium text-slate-300 light:text-slate-600 uppercase tracking-wide flex items-center gap-2">
             <HardHat size={16} /> Current Task
           </h2>
           {currentTask ? (
@@ -180,20 +180,26 @@ export function Dashboard() {
               status={prediction?.deadline_at_risk ? "AT RISK" : "ON TRACK"}
             />
           ) : (
-            <p className="text-sm text-slate-500">No active task.</p>
+            <p className="text-sm text-slate-500 light:text-slate-400">No active task.</p>
           )}
 
-          <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide pt-2">Today's Tasks</h2>
+          <h2 className="text-sm font-medium text-slate-300 light:text-slate-600 uppercase tracking-wide pt-2">
+            Today's Tasks
+          </h2>
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
             {tasks.slice(0, 6).map((t) => (
               <TaskCard key={t.task_id} task={t} />
             ))}
-            {tasks.length === 0 && <p className="text-sm text-slate-500">No scheduled tasks found.</p>}
+            {tasks.length === 0 && (
+              <p className="text-sm text-slate-500 light:text-slate-400">No scheduled tasks found.</p>
+            )}
           </div>
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide">Next Best Action</h2>
+          <h2 className="text-sm font-medium text-slate-300 light:text-slate-600 uppercase tracking-wide">
+            Next Best Action
+          </h2>
           <NBACard recommendation={recommendation} />
         </div>
       </div>
