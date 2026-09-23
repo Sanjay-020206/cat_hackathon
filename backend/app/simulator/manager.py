@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from app.context.live_context import LiveContextProcessor
 from app.simulator.telemetry_simulator import TelemetrySimulator
 
 
@@ -18,6 +19,7 @@ class SimulationManager:
         self.ticks_emitted: int = 0
         self._task: asyncio.Task | None = None
         self._subscribers: list[asyncio.Queue] = []
+        self._context_processor = LiveContextProcessor()
 
     def status(self) -> dict[str, Any]:
         return {"running": self.running, "mode": self.mode, "ticks_emitted": self.ticks_emitted}
@@ -39,6 +41,7 @@ class SimulationManager:
         self.interval_seconds = interval_seconds
         self.running = True
         self.ticks_emitted = 0
+        self._context_processor.reset()
         loop = asyncio.get_event_loop()
         self._task = loop.create_task(self._run_loop())
 
@@ -54,6 +57,13 @@ class SimulationManager:
             while self.running:
                 reading = self.simulator.next_reading()
                 self.ticks_emitted += 1
+                try:
+                    rec = self._context_processor.process_reading(reading)
+                    rec["machine_id"] = reading["machine_id"]
+                    rec["operator_id"] = reading["operator_id"]
+                    reading["recommendation"] = rec
+                except Exception:
+                    reading["recommendation"] = None
                 for q in list(self._subscribers):
                     if q.full():
                         try:

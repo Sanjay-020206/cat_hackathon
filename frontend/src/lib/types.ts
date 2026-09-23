@@ -53,6 +53,7 @@ export interface TelemetryReading {
   note?: string;
   weather?: string;
   ground_condition?: string;
+  recommendation?: Recommendation | null;
 }
 
 export interface SafetyEvent {

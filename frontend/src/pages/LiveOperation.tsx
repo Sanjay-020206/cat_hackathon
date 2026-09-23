@@ -1,16 +1,15 @@
 import { Play, Radio, Square } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { NBACard } from "../components/NBACard";
 import { RiskTrendChart } from "../components/RiskTrendChart";
 import { StatCard } from "../components/StatCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../lib/api";
-import type { Recommendation } from "../lib/types";
 import { useTelemetryStream } from "../lib/ws";
 
 export function LiveOperation() {
   const { latest, history, connectionState } = useTelemetryStream();
   const [simRunning, setSimRunning] = useState(false);
-  const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [riskSeries, setRiskSeries] = useState<{ t: string; risk: number }[]>([]);
 
   useEffect(() => {
@@ -20,22 +19,14 @@ export function LiveOperation() {
       .catch(() => {});
   }, []);
 
+  // The live recommendation arrives already computed on each WebSocket tick (Context
+  // Engine + NBA run server-side per reading) -- no separate REST poll needed, which
+  // also avoids the mismatch of showing DB-historical risk instead of the live stream's.
+  const recommendation = latest?.recommendation ?? null;
+
   useEffect(() => {
-    if (!latest?.machine_id) return;
-    let cancelled = false;
-    api
-      .getRecommendation(latest.machine_id)
-      .then((rec) => {
-        if (cancelled) return;
-        setRecommendation(rec);
-        setRiskSeries((prev) =>
-          [...prev.slice(-29), { t: new Date().toLocaleTimeString(), risk: rec.risk_score }]
-        );
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    if (!recommendation) return;
+    setRiskSeries((prev) => [...prev.slice(-29), { t: new Date().toLocaleTimeString(), risk: recommendation.risk_score }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latest?.timestamp]);
 
@@ -150,6 +141,15 @@ export function LiveOperation() {
           )}
         </div>
       </div>
+
+      {recommendation && (
+        <div>
+          <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-2">
+            Live Next Best Action
+          </h2>
+          <NBACard recommendation={recommendation} />
+        </div>
+      )}
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
         <h2 className="text-sm font-medium text-slate-300 uppercase tracking-wide mb-2">Recent Readings</h2>
