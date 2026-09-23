@@ -2,17 +2,19 @@
 
 Builds fused context from the most recent telemetry for the machine, computes risk +
 contributors via the Context Engine, derives the Next Best Action, and generates a
-template-based explanation (spec sections 16-18). No LLM dependency here (that's the
-optional Phase 8 layer sitting in front of this template).
+template-based explanation (spec sections 16-18). Optionally rewrites the explanation
+via a local LLM (spec sections 34-36) when `?narrative=true` -- off by default so the
+common path stays fast and has zero dependency on Ollama being installed or running.
 """
 from __future__ import annotations
 
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.context.context_engine import ContextFusionInput, build_context
 from app.context.explain import build_explanation
+from app.context.llm_explain import explain_with_fallback
 from app.context.nba_engine import next_best_action
 from app.db import get_db
 from app.models import Machine, Operator, SafetyEvent, Telemetry
@@ -23,7 +25,11 @@ RECENT_WINDOW = 10
 
 
 @router.get("/{machine_id}")
-def get_recommendation(machine_id: str, db: Session = Depends(get_db)):
+def get_recommendation(
+    machine_id: str,
+    narrative: bool = Query(default=False, description="Rewrite the explanation via a local LLM if available"),
+    db: Session = Depends(get_db),
+):
     recent_rows = (
         db.query(Telemetry)
         .filter(Telemetry.machine_id == machine_id)
@@ -79,6 +85,8 @@ def get_recommendation(machine_id: str, db: Session = Depends(get_db)):
     context = build_context(inp)
     nba = next_best_action(context)
     explanation = build_explanation(context, nba)
+    if narrative:
+        explanation = explain_with_fallback(explanation)
 
     return {
         "machine_id": machine_id,
