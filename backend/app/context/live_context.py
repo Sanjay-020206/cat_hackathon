@@ -13,12 +13,21 @@ import pandas as pd
 from app.context.context_engine import ContextEngine, ContextFusionInput, build_context
 from app.context.explain import build_explanation
 from app.context.nba_engine import next_best_action
+from app.expertise.service import get_expertise_engine
 from app.ml import anomaly
 from app.ml.registry import get_anomaly_model
 
 DEFAULT_BASELINE_CYCLE_TIME = 44.0
 DEFAULT_BASELINE_IDLE_TIME = 8.0
 WINDOW_SIZE = 10
+
+# The scripted/random demo stream only ever drives the fixed demo machine (EXC001, a CAT
+# 320 excavator -- see app.simulator.scenario.DEMO_MACHINE_ID and the deterministic
+# machine ordering in app.data_gen.generate_datasets). Hardcoded here rather than a DB
+# lookup so the live WebSocket loop stays fast and has no DB dependency, matching how
+# scenario.py already hardcodes this same machine/operator pair.
+DEMO_MACHINE_MODEL = "CAT 320"
+DEMO_MACHINE_TYPE = "Excavator"
 
 
 class LiveContextProcessor:
@@ -66,6 +75,7 @@ class LiveContextProcessor:
         nba = next_best_action(context)
         explanation = build_explanation(context, nba)
         ml_anomaly = self._score_ml_anomaly(reading)
+        expertise = self._evaluate_expertise(reading)
 
         return {
             "risk_level": context["risk_level"],
@@ -75,7 +85,20 @@ class LiveContextProcessor:
             "next_best_action": nba,
             "explanation": explanation,
             "ml_anomaly": ml_anomaly,
+            "expertise": expertise,
         }
+
+    @staticmethod
+    def _evaluate_expertise(reading: dict) -> dict | None:
+        """Runs the CAT Expertise Engine (situation recognition -> ground intelligence ->
+        expert-moment detection -> experience retrieval) on the live reading. Never
+        raises: a failure here must degrade to "unavailable", not break the live stream,
+        same policy as `_score_ml_anomaly` above."""
+        try:
+            engine = get_expertise_engine()
+            return engine.evaluate(reading, machine_model=DEMO_MACHINE_MODEL, machine_type=DEMO_MACHINE_TYPE)
+        except Exception:
+            return None
 
     @staticmethod
     def _score_ml_anomaly(reading: dict) -> dict | None:

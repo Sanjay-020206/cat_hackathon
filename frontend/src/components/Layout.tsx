@@ -1,4 +1,4 @@
-import { Activity, Gauge, GraduationCap, LayoutDashboard, ShieldAlert } from "lucide-react";
+import { Activity, Brain, Gauge, GraduationCap, LayoutDashboard, Map as MapIcon, ShieldAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { to: "/safety", label: "Safety Center", icon: ShieldAlert },
   { to: "/training", label: "Training Hub", icon: GraduationCap },
   { to: "/shift", label: "Shift Intelligence", icon: Gauge },
+  { to: "/expertise", label: "Expertise Engine", icon: Brain },
+  { to: "/site-map", label: "Site Map", icon: MapIcon },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

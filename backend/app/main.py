@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.db import SessionLocal, init_db
 from app.loader import load_csvs_into_db
 from app.routers import (
+    expertise,
     health,
     incidents,
     machines,
@@ -15,6 +16,7 @@ from app.routers import (
     safety,
     shift,
     simulation,
+    site,
     tasks,
     telemetry,
     training,
@@ -55,6 +57,8 @@ app.include_router(incidents.router)
 app.include_router(recommendations.router)
 app.include_router(shift.router)
 app.include_router(simulation.router)
+app.include_router(expertise.router)
+app.include_router(site.router)
 app.include_router(telemetry_ws.router)
 
 

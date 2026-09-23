@@ -122,6 +122,10 @@ export interface Recommendation {
   contributors: Contributor[];
   next_best_action: NextBestAction;
   explanation: Explanation;
+  // Present only on the live WebSocket stream -- the CAT Expertise Engine's evaluation
+  // of the same reading, computed server-side alongside the risk/NBA context.
+  expertise?: ExpertiseEvaluation | null;
+  ml_anomaly?: { anomaly_flag: boolean; anomaly_score: number } | null;
 }
 
 export interface HealthState {
@@ -164,4 +168,172 @@ export interface SimulationStatus {
   running: boolean;
   mode: string | null;
   ticks_emitted: number;
+}
+
+// ---- CAT Expertise Engine ----
+
+export interface OperatingSituation {
+  machine_id: string;
+  machine_model: string;
+  attachment_type: string;
+  task_type: string;
+  hydraulic_pressure: number;
+  engine_load: number;
+  rpm: number;
+  cycle_time: number;
+  fuel_rate: number;
+  machine_speed: number;
+  material_resistance: number;
+  penetration_rate: number;
+  vibration_level: number;
+  energy_per_cycle: number;
+  position_x: number;
+  position_y: number;
+  depth: number;
+  operator_experience_level: string;
+  timestamp: string;
+}
+
+export interface GroundEstimate {
+  cell_id: string;
+  estimated_material: string;
+  material_confidence: number;
+  resistance_score: number | null;
+  excavation_difficulty: string;
+  observation_count: number;
+  confidence_note: string | null;
+}
+
+export interface EnergyForecast {
+  cell_id: string;
+  expected_resistance: string;
+  expected_energy_per_cycle: number | null;
+  expected_energy_label?: string;
+  expected_cycle_time: number | null;
+  expected_difficulty: string;
+  confidence: number;
+  note: string | null;
+}
+
+export interface ExpertMoment {
+  triggered: boolean;
+  situation: string;
+  reason: string;
+}
+
+export interface ExpertMatch {
+  episode_id: string;
+  similarity: number;
+  action_sequence: string[];
+  successful: boolean;
+  cycle_time: number;
+  energy_per_cycle: number;
+  operator_experience_level: string;
+}
+
+export interface ExpertPattern {
+  pattern: string[];
+  supporting_episode_count: number;
+  method: string;
+}
+
+export interface ExpertConfidence {
+  score: number;
+  tier: "high" | "low" | "none";
+  components: Record<string, number>;
+}
+
+export interface ExpertNextBestAction {
+  action_sequence: string[];
+  reason: string;
+  confidence: number;
+  priority: "high" | "medium";
+}
+
+export interface ExpertiseEvaluation {
+  machine_id: string;
+  situation: string;
+  operating_situation: OperatingSituation;
+  area: { cell_id: string; x: number; y: number; depth: number };
+  ground_estimate: GroundEstimate;
+  energy_forecast: EnergyForecast;
+  expert_moment: ExpertMoment;
+  matches: ExpertMatch[];
+  pattern: ExpertPattern | null;
+  confidence: ExpertConfidence;
+  next_best_action: ExpertNextBestAction | null;
+  data_source: string;
+}
+
+export interface ExpertEpisode {
+  episode_id: string;
+  machine_model: string;
+  attachment: string;
+  task: string;
+  situation: string;
+  context: Record<string, number>;
+  operator_profile: { experience_level: string };
+  action_sequence: string[];
+  outcome: { cycle_time: number; energy_per_cycle: number; successful: boolean };
+  cell_id: string | null;
+  quality_score: number;
+  is_synthetic: boolean;
+}
+
+export interface ExpertiseStatistics {
+  areas_mapped: number;
+  total_areas: number;
+  known_high_resistance_areas: number;
+  known_low_resistance_areas: number;
+  unknown_areas: number;
+  successful_patterns: number;
+  new_patterns_learned_today: number;
+  as_of: string;
+  data_source: string;
+}
+
+export interface MachineMemory {
+  total_episodes: number;
+  trusted_episodes: number;
+  episodes_by_situation: Record<string, number>;
+  new_episodes_this_session: number;
+  data_source: string;
+}
+
+export interface OutcomeResult {
+  cell_id: string;
+  material_confidence_before: number;
+  material_confidence_after: number;
+  observation_count: number;
+  new_episode_stored: boolean;
+  episode_id: string | null;
+  updated_at: string | null;
+}
+
+export interface SiteCellSummary {
+  cell_id: string;
+  x: number;
+  y: number;
+  estimated_material: string;
+  material_confidence: number;
+  excavation_difficulty: "LOW" | "MEDIUM" | "HIGH";
+  observation_count: number;
+  successful_episode_count: number;
+}
+
+export interface SiteMap {
+  width: number;
+  height: number;
+  cells: SiteCellSummary[];
+  data_source: string;
+}
+
+export interface SiteCellDetail extends SiteCellSummary {
+  resistance_score: number;
+  average_hydraulic_load: number;
+  average_engine_load: number;
+  average_energy_per_cycle: number;
+  average_cycle_time: number;
+  last_updated: string | null;
+  recent_history: { timestamp: string; resistance: number; successful: boolean }[];
 }

@@ -1,11 +1,18 @@
 import type {
+  ExpertEpisode,
+  ExpertiseEvaluation,
+  ExpertiseStatistics,
   HealthState,
   Incident,
   Machine,
+  MachineMemory,
   Operator,
+  OutcomeResult,
   Recommendation,
   SafetyEvent,
   SimulationStatus,
+  SiteCellDetail,
+  SiteMap,
   Task,
   TaskPrediction,
   TelemetryReading,
@@ -90,4 +97,19 @@ export const api = {
     postJson<SimulationStatus>("/simulation/start", { mode, interval_seconds }),
   stopSimulation: () => postJson<SimulationStatus>("/simulation/stop"),
   getSimulationStatus: () => getJson<SimulationStatus>("/simulation/status"),
+
+  // CAT Expertise Engine
+  getExpertiseEvaluation: (machineId: string) => getJson<ExpertiseEvaluation>(`/expertise/evaluate/${machineId}`),
+  getExpertiseEpisodes: (situation?: string) =>
+    getJson<{ count: number; episodes: ExpertEpisode[]; data_source: string }>(
+      `/expertise/episodes${situation ? `?situation=${encodeURIComponent(situation)}` : ""}`,
+    ),
+  recordExpertiseOutcome: (payload: { machine_id: string; cycle_time_after: number; successful?: boolean }) =>
+    postJson<OutcomeResult>("/expertise/outcome", payload),
+  getMachineMemory: () => getJson<MachineMemory>("/expertise/memory"),
+  getExpertiseStatistics: () => getJson<ExpertiseStatistics>("/expertise/statistics"),
+
+  // Jobsite Ground Memory
+  getSiteMap: () => getJson<SiteMap>("/site/map"),
+  getSiteCell: (cellId: string) => getJson<SiteCellDetail>(`/site/cells/${cellId}`),
 };
